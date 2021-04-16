@@ -31,9 +31,14 @@ func Receive(wg *sync.WaitGroup, store models.MessageStore, in <-chan models.Mes
 	go func() {
 		defer wg.Done()
 		for msg := range in {
-			if !store.IsDuplicate(msg.GetID()) {
-				if err := store.Increment(msg.GetAttributes()); err != nil {
+			ret, err := store.CheckAndSet(msg.GetID())
+			if err != nil {
+				return
+			}
+			if ret == models.RecordAdded {
+				if err := store.AddAttributes(msg.GetID(), msg.GetAttributes()); err != nil {
 					store.Remove(msg.GetID())
+					return
 				}
 			}
 		}

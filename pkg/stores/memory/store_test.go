@@ -3,7 +3,6 @@ package memory_store
 import (
 	"fmt"
 	"github.com/mmidzik/tabus/pkg/test"
-	"reflect"
 	"sync"
 	"testing"
 )
@@ -17,10 +16,12 @@ func TestCountDuplicates(t *testing.T) {
 	test.Receive(&wg, store, c)
 	test.Receive(&wg, store, c)
 	wg.Wait()
-	attrs := store.GetAttributes()
-	expected := map[string]int{"default": 100}
-	if !reflect.DeepEqual(attrs, expected) {
-		t.Fatal(fmt.Sprintf("Didn't count expected attributes. Expected %+v, got %+v", expected, attrs))
+	attrs, err := store.GetAttribute("default")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if attrs != 100 {
+		t.Fatal(fmt.Sprintf("Didn't count expected attributes. Expected 100, got %+v", attrs))
 	}
 }
 
@@ -33,9 +34,18 @@ func TestCountDuplicateAttrs(t *testing.T) {
 	test.Receive(&wg, store, c)
 	test.Receive(&wg, store, c)
 	wg.Wait()
-	attrs := store.GetAttributes()
-	expected := map[string]int{"default": 10, "subID.sub1": 10}
-	if !reflect.DeepEqual(attrs, expected) {
-		t.Fatal(fmt.Sprintf("Didn't count expected attributes. Expected %+v, got %+v", expected, attrs))
+	attrs, err := store.GetAttribute("default")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if attrs != 10 {
+		t.Fatal(fmt.Sprintf("Didn't count expected attributes. Expected 10, got %+v", attrs))
+	}
+	attrs, err = store.GetAttribute("subID.sub1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if attrs != 10 {
+		t.Fatal(fmt.Sprintf("Didn't count expected attributes. Expected 10, got %+v", attrs))
 	}
 }
