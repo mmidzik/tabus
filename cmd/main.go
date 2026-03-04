@@ -35,25 +35,20 @@ func main() {
 		PublishTime: time.Now(),
 	}
 
-	ret, err := store.CheckAndSet(msg.ID)
+	status, err := store.CheckAndAddAttributes(msg.ID, msg.Attributes)
 	if err != nil {
 		log.Panic(err)
+	}
+	if status != models.RecordAdded {
+		log.Panic(fmt.Sprintf("record not added, got %d", status))
 	}
 
-	if ret != models.RecordAdded {
-		log.Panic(fmt.Sprintf("record not added, got %d", ret))
-	}
-	err = store.AddAttributes(msg.ID, msg.Attributes)
+	status, err = store.CheckAndAddAttributes(msg.ID, msg.Attributes)
 	if err != nil {
 		log.Panic(err)
 	}
-
-	ret, err = store.CheckAndSet(msg.ID)
-	if err != nil {
-		log.Panic(err)
-	}
-	if ret != models.RecordExists {
-		log.Panic(fmt.Sprintf("record not found, got %d", ret))
+	if status != models.RecordExists {
+		log.Panic(fmt.Sprintf("expected duplicate, got %d", status))
 	}
 
 	attr, err := store.GetAttribute("default")
@@ -63,22 +58,18 @@ func main() {
 	fmt.Println(attr)
 
 }
-
 func (b *Consumer) Listen() {
 	ctx := context.Background()
 	b.sub.Receive(ctx, func(ctx context.Context, msg *pubsub.Message) {
 		defer msg.Nack()
-		set, err := b.store.CheckAndSet(msg.ID)
+		status, err := b.store.CheckAndAddAttributes(msg.ID, msg.Attributes)
 		if err != nil {
 			return
 		}
-		if set == models.RecordAdded {
-			if err := b.store.AddAttributes(msg.ID, msg.Attributes); err != nil {
-				b.store.Remove(msg.ID)
-				return
-			}
+		if status == models.RecordAdded {
 			b.log.Info(string(msg.Data))
 			msg.Ack()
 		}
 	})
 }
+
