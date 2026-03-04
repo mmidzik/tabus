@@ -31,12 +31,16 @@ func Publish(num int, numDups int, attrs map[string]string) <-chan models.Messag
 
 // Receive consumes messages from in, deduplicates by ID via store, and counts
 // attributes exactly once per unique message (only when RecordAdded).
-func Receive(wg *sync.WaitGroup, store models.MessageStore, in <-chan models.Message) {
+// If onErr is non-nil, it is called when CheckAndAddAttributes returns an error (e.g. from tests: onErr = func(err error) { t.Error(err) }).
+func Receive(wg *sync.WaitGroup, store models.MessageStore, in <-chan models.Message, onErr func(error)) {
 	go func() {
 		defer wg.Done()
 		for msg := range in {
 			status, err := store.CheckAndAddAttributes(msg.GetID(), msg.GetAttributes())
 			if err != nil {
+				if onErr != nil {
+					onErr(err)
+				}
 				return
 			}
 			if status == models.RecordAdded {

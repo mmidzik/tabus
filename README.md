@@ -6,7 +6,6 @@ Simple examples of deduplicating & counting pub/sub messages with various backen
 * [x] Memory
 * [x] Redis
 * [ ] Bigtable
-* [ ] FireStore
 
 ## TODO:
 * [ ] Dev setup & tests w/ emulators/local redis
